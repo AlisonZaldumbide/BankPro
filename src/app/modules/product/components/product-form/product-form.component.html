@@ -1,0 +1,51 @@
+<div class="form-container">
+    <h2>Formulario de Registro</h2>
+    <form [formGroup]="form" (submit)="saveProduct()">
+        <div class="form-grid">
+
+            <div class="form-group">
+                <label for="id">ID</label>
+                <input type="text" id="id" [ngClass]="{'invalid': getErrors('id')}" formControlName="id" />
+                <span class="error" *ngIf="getErrors('id')">¡ID no válido!</span>
+            </div>
+
+            <div class="form-group">
+                <label for="name">Nombre</label>
+                <input type="text" id="name" value="Tarjeta Crédito" formControlName="name"
+                    [ngClass]="{'invalid': getErrors('name')}" />
+                <span class="error" *ngIf="getErrors('name')">Este campo es requerido!</span>
+            </div>
+
+            <div class="form-group full">
+                <label for="description">Descripción</label>
+                <input type="text" id="description" class="invalid" formControlName="description"
+                    [ngClass]="{'invalid': getErrors('description')}" />
+                <span class="error" *ngIf="getErrors('description')">Este campo es requerido!</span>
+            </div>
+
+            <div class="form-group">
+                <label for="logo">Logo</label>
+                <input type="text" id="logo" class="invalid" formControlName="logo"
+                    [ngClass]="{'invalid': getErrors('logo')}" />
+                <span class="error" *ngIf="getErrors('logo')">Este campo es requerido!</span>
+            </div>
+
+            <div class="form-group">
+                <label for="release">Fecha Liberación</label>
+                <input type="date" id="release" value="2023-02-22" formControlName="date_release"
+                    [ngClass]="{'invalid': getErrors('date_release')}" (change)="setRevisionDate()" />
+                <span class="error" *ngIf="getErrors('date_release')">Este campo es requerido!</span>
+            </div>
+
+            <div class="form-group">
+                <label for="revision">Fecha Revisión</label>
+                <input type="date" id="revision" class="disabled" formControlName="date_revision" />
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="reset" class="btn-reset" (click)="resetForm()">Reiniciar</button>
+            <button type="submit" class="btn-submit">Enviar</button>
+        </div>
+    </form>
+</div>
