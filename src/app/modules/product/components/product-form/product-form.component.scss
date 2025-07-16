@@ -72,12 +72,16 @@ input.disabled {
 }
 
 .btn-reset {
-    background-color: #f2f3f5;
+    background-color: #cbcbcc;
     color: #333;
     border: none;
     padding: 10px 20px;
     border-radius: 6px;
     cursor: pointer;
+
+    &:disabled {
+        background-color: #dddee1 !important;
+    }
 }
 
 .btn-submit {

@@ -5,7 +5,7 @@
     </div>
     <div class="table-wrapper">
         <table>
-            <thead>
+            <thead *ngIf="!isLoading">
                 <tr>
                     <th>Logo</th>
                     <th>Nombre del Producto</th>
@@ -15,7 +15,7 @@
                     <th></th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody *ngIf="!isLoading">
                 <tr *ngFor="let product of paginatedList()">
                     <td>
                         <div class="avatar">
@@ -30,18 +30,19 @@
                         <div class="dropdown-container">
                             <button class="dropdown-toggle" (click)="toggleDropdown(product.id)">⋮</button>
                             <div class="dropdown-menu" *ngIf="dropdownOpen == product.id">
-                                <button onclick="editProduct()">Edit</button>
-                                <button onclick="deleteProduct()">Delete</button>
+                                <button (click)="editProduct(product.id)">Edit</button>
+                                <button (click)="onDeleteProduct(product)">Delete</button>
                             </div>
                         </div>
                     </td>
                 </tr>
             </tbody>
+            <app-product-list-skeleton *ngIf="isLoading"></app-product-list-skeleton>
         </table>
     </div>
 
     <div class="table-footer">
-        <span>{{list.length }} Resultados</span>
+        <span>{{list.length }} {{list.length == 1? 'Resultado': 'Resultados' }} </span>
 
         <select [(ngModel)]="pageSize" (change)="onPageSizeChange()">
             <option value="5">5</option>
@@ -55,4 +56,5 @@
             <button (click)="nextPage()" [disabled]="currentPage === totalPages()">→</button>
         </div>
     </div>
+
 </div>

@@ -1,8 +1,9 @@
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { ProductService } from '../../services/product.service';
 import { Product } from '../../models/product.model';
-import { catchError, of, Subscription, tap } from 'rxjs';
+import { catchError, delay, of, Subscription, tap } from 'rxjs';
 import { Router } from '@angular/router';
+import { ModalService } from '../../../main/services/modal.service';
 
 @Component({
   selector: 'app-product-list',
@@ -20,11 +21,13 @@ export class ProductListComponent implements OnInit, OnDestroy {
   public pageSize: number;
   public textFilter: string;
   public currentPage: number;
+  public isLoading: boolean;
 
   constructor(
     private readonly _productSvc: ProductService,
     private readonly _changeDetector: ChangeDetectorRef,
-    private readonly _router: Router
+    private readonly _router: Router,
+    private readonly _modalSvc: ModalService
   ) {
     this._subscriptions = [];
     this._list = [];
@@ -33,6 +36,7 @@ export class ProductListComponent implements OnInit, OnDestroy {
     this.dropdownOpen = '';
     this.pageSize = 5;
     this.textFilter = '';
+    this.isLoading = false;
   }
 
 
@@ -48,11 +52,15 @@ export class ProductListComponent implements OnInit, OnDestroy {
   }
 
   getProducts() {
+    this.isLoading = true;
     let subs = this._productSvc.getProducts()
       .pipe(
+        delay(1500),
         tap(x => {
           this._list = x;
           this.filterList();
+          this.isLoading = false;
+          this._changeDetector.detectChanges();
         }),
         catchError((err) => {
           return of([]);
@@ -69,6 +77,7 @@ export class ProductListComponent implements OnInit, OnDestroy {
     } else {
       this.dropdownOpen = id;
     }
+    this._changeDetector.detectChanges();
   }
 
   public filterList() {
@@ -80,6 +89,7 @@ export class ProductListComponent implements OnInit, OnDestroy {
 
     this.list = filtered;
     this.list = this.list.slice(0);
+    console.log(this.list)
     this._changeDetector.detectChanges();
     this.currentPage = 1;
   }
@@ -101,17 +111,54 @@ export class ProductListComponent implements OnInit, OnDestroy {
   public nextPage() {
     if (this.currentPage < this.totalPages()) {
       this.currentPage++;
+      this._changeDetector.detectChanges();
     }
   }
 
   public previousPage() {
     if (this.currentPage > 1) {
       this.currentPage--;
+      this._changeDetector.detectChanges();
     }
   }
 
   public addProduct() {
     this._router.navigate(['/products/new']);
+  }
+
+  public editProduct(id: string) {
+    this._router.navigate(['/products/edit', id]);
+  }
+
+  public onDeleteProduct(product: Product) {
+    this.toggleDropdown(product.id);
+    let subs = this._modalSvc.open({
+      title: '¿Estás seguro de que deseas eliminar el producto ' + product.name + '?',
+      confirmTitle: 'Confirmar',
+      cancelTitle: 'Cancelar',
+      type: 'Info'
+    }).subscribe(confirmed => {
+      if (confirmed) {
+        this.deleteProduct(product.id);
+      }
+    });
+    this._subscriptions.push(subs);
+  }
+
+  public deleteProduct(id: string) {
+    let subs = this._productSvc.deleteProduct(id)
+      .pipe(
+        tap(x => {
+          this._list = this._list.filter(x => x.id != id);
+          this.currentPage = 1;
+          this.filterList();
+        }),
+        catchError((err) => {
+          return of(null);
+        })
+      ).subscribe();
+
+    this._subscriptions.push(subs);
   }
 
 }
