@@ -55,7 +55,7 @@ export class ProductListComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     let subs = this._productSvc.getProducts()
       .pipe(
-        delay(1500),
+        delay(1000),
         tap(x => {
           this._list = x;
           this.filterList();
@@ -89,7 +89,6 @@ export class ProductListComponent implements OnInit, OnDestroy {
 
     this.list = filtered;
     this.list = this.list.slice(0);
-    console.log(this.list)
     this._changeDetector.detectChanges();
     this.currentPage = 1;
   }

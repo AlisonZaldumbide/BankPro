@@ -5,6 +5,7 @@ import { ProductService } from '../../services/product.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { minDateValidator } from '../../validators/min-date.validator';
+import { existsValidator } from '../../validators/exists.validator';
 
 @Component({
   selector: 'app-product-form',
@@ -61,7 +62,7 @@ export class ProductFormComponent implements OnInit, OnDestroy {
   }
 
   private _createForm() {
-    this.form.addControl('id', this._fb.control(null, [Validators.required, Validators.minLength(3), Validators.maxLength(10)]));
+    this.form.addControl('id', this._fb.control(null, [Validators.required, Validators.minLength(3), Validators.maxLength(10)], [existsValidator(this._productSvc)]));
     this.form.addControl('name', this._fb.control(null, [Validators.required, Validators.minLength(5), Validators.maxLength(100)]));
     this.form.addControl('description', this._fb.control(null, [Validators.required, Validators.minLength(10), Validators.maxLength(200)]));
     this.form.addControl('logo', this._fb.control(null, Validators.required));
@@ -112,6 +113,10 @@ export class ProductFormComponent implements OnInit, OnDestroy {
     return (ctrl && (ctrl.errors?.['minlength'] || ctrl.errors?.['maxlength']) && this.showErrors);
   }
 
+  public verifyAlreadyExists(control: string) {
+    const ctrl = this.form.get(control);
+    return (ctrl && ctrl.errors?.['idExists'] && this.showErrors);
+  }
 
   public getMinDateError(control: string) {
     const ctrl = this.form.get(control);

@@ -5,9 +5,10 @@
 
             <div class="form-group">
                 <label for="id">ID</label>
-                <input type="text" id="id" [ngClass]="{'invalid': getErrors('id') || getPatternError('id')}"
+                <input type="text" id="id" [ngClass]="{'invalid': getErrors('id') || getPatternError('id') || verifyAlreadyExists('id')}"
                     formControlName="id" autocomplete="off" />
                 <span class="error" *ngIf="getErrors('id')">Este campo es requerido</span>
+                <span class="error" *ngIf="verifyAlreadyExists('id')">Este ID ya existe</span>
                 <span class="error" *ngIf="getPatternError('id')">Minimo 3 y maximo 10 caracteres</span>
             </div>
 

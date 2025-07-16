@@ -2,29 +2,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ProductFormComponent } from './product-form.component';
 import { ProductService } from '../../services/product.service';
 import { ActivatedRoute, Router } from '@angular/router';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { ChangeDetectorRef, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { of } from 'rxjs';
-
-const mockProductService = {
-  readProduct: jest.fn().mockReturnValue(of({
-    id: 'P001',
-    name: 'Producto de prueba',
-    description: 'Descripción de prueba',
-    logo: 'https://example.com/logo.png',
-    date_release: '2024-07-15',
-    date_revision: '2025-07-15'
-  })),
-  createProduct: jest.fn().mockReturnValue(of({})),
-  updateProduct: jest.fn().mockReturnValue(of({}))
-};
-
-const mockActivatedRoute = {
-  snapshot: {
-    paramMap: {
-      get: jest.fn().mockReturnValue('P001')
-    }
-  }
-};
+import { expect } from '@jest/globals';
 
 const mockRouter = {
   navigate: jest.fn()
@@ -33,17 +14,48 @@ const mockRouter = {
 describe('ProductFormComponent', () => {
   let component: ProductFormComponent;
   let fixture: ComponentFixture<ProductFormComponent>;
+  let mockProductService: any;
+  let mockActivatedRoute: any;
+
+  const mockProduct = {
+    id: '123',
+    name: 'Producto prueba',
+    description: 'Una descripción de prueba',
+    logo: 'logo.png',
+    date_release: '2025-07-16',
+    date_revision: '2026-07-16'
+  };
 
   beforeEach(async () => {
+    mockProductService = {
+      readProduct: jest.fn().mockReturnValue(of(mockProduct)),
+      createProduct: jest.fn().mockReturnValue(of({})),
+      updateProduct: jest.fn().mockReturnValue(of({})),
+      getIdExists: jest.fn().mockReturnValue(of(false))
+    };
+
+    mockActivatedRoute = {
+      snapshot: {
+        paramMap: {
+          get: jest.fn((key) => {
+            if (key === 'id') return '123';
+            return null;
+          })
+        }
+      }
+    };
+
     await TestBed.configureTestingModule({
-      imports: [ReactiveFormsModule],
       declarations: [ProductFormComponent],
+      imports: [ReactiveFormsModule, FormsModule],
       providers: [
-        FormBuilder,
         { provide: ProductService, useValue: mockProductService },
         { provide: ActivatedRoute, useValue: mockActivatedRoute },
-        { provide: Router, useValue: mockRouter }
-      ]
+        { provide: Router, useValue: mockRouter },
+        FormBuilder,
+        ChangeDetectorRef
+      ],
+      schemas: [CUSTOM_ELEMENTS_SCHEMA]
     }).compileComponents();
 
     fixture = TestBed.createComponent(ProductFormComponent);
@@ -55,43 +67,109 @@ describe('ProductFormComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should initialize form with product data if id is present', () => {
-    expect(component.form.get('id')?.value).toBe('P001');
-    expect(component.form.get('name')?.value).toBe('Producto de prueba');
+  it('should create the form on init', () => {
+    expect(component.form.contains('id')).toBe(true);
+    expect(component.form.contains('name')).toBe(true);
+    expect(component.form.contains('description')).toBe(true);
+    expect(component.form.contains('logo')).toBe(true);
+    expect(component.form.contains('date_release')).toBe(true);
+    expect(component.form.contains('date_revision')).toBe(true);
   });
 
-  it('should call createProduct when saving a new product', () => {
+  it('should set revision date one year after release date', () => {
+    const releaseDate = new Date();
+    const nextYear = new Date(releaseDate);
+    nextYear.setFullYear(releaseDate.getFullYear() + 1);
+
+    component.form.get('date_release')?.setValue(releaseDate.toISOString().substring(0, 10));
+    component.setRevisionDate();
+
+    expect(component.form.get('date_revision')?.value).toBe(nextYear.toISOString().substring(0, 10));
+  });
+
+  it('should load product if id is present in route', async () => {
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(component.form.get('id')?.value).toBe(mockProduct.id);
+    expect(component.form.get('name')?.value).toBe(mockProduct.name);
+  });
+
+  it('should disable id field if editing existing product', async () => {
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(component.form.get('id')?.disabled).toBe(true);
+  });
+
+  it('should call addProduct when saving a new product', async () => {
+    const spy = jest.spyOn(component, 'addProduct');
+    component.id = null;
+
+    component.form.setValue({
+      id: '123',
+      name: 'Test Product',
+      description: 'Test Description',
+      logo: 'logo.png',
+      date_release: '2025-12-12',
+      date_revision: '2026-12-12'
+    });
+
+    component.saveProduct();
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('should call updateProduct if id is present', async () => {
+    const spy = jest.spyOn(component, 'updateProduct');
+
+    component.id = '123';
+    component.product = mockProduct;
+    component['product'] = mockProduct;
+
+    component.resetForm();
+
+    component.form.patchValue({
+      name: 'Updated Product',
+      description: 'Updated description',
+      logo: 'logo.png',
+      date_release: '2025-01-01',
+      date_revision: '2026-01-01'
+    });
+
+    await fixture.whenStable();
+    component.saveProduct();
+
+    expect(spy).toHaveBeenCalledWith(expect.any(Object), '123');
+  });
+
+
+  it('should show errors if form is invalid on submit', () => {
+    component.form.reset();
+    component.saveProduct();
+    expect(component.showErrors).toBe(true);
+  });
+
+  it('should reset the form if no id is present', () => {
     component.id = null;
     component.form.setValue({
-      id: 'P002',
-      name: 'Nuevo producto',
-      description: 'Descripción larga de prueba',
-      logo: 'https://example.com/logo2.png',
-      date_release: '2024-07-16',
-      date_revision: '2025-07-16'
+      id: 'reset-id',
+      name: 'Reset Name',
+      description: 'Reset Desc',
+      logo: 'logo.png',
+      date_release: '2025-01-01',
+      date_revision: '2026-01-01'
     });
 
-    component.saveProduct();
+    component.resetForm();
 
-    expect(mockProductService.createProduct).toHaveBeenCalledWith(expect.objectContaining({
-      id: 'P002'
-    }));
+    expect(component.form.get('id')?.value).toBeFalsy();
+    expect(component.form.get('name')?.value).toBeFalsy();
   });
 
-  it('should call updateProduct when editing existing product', () => {
-    component.id = 'P001';
-    component.form.enable();
-    component.form.patchValue({
-      name: 'Producto actualizado'
-    });
-    component.saveProduct();
+  it('should restore product data when resetForm is called in edit mode', () => {
+    component.id = '123';
+    component.product = mockProduct;
 
-    expect(mockProductService.updateProduct).toHaveBeenCalledWith('P001', expect.anything());
-  });
-
-  it('should set date_revision one year after date_release', () => {
-    component.form.get('date_release')?.setValue('2024-07-15');
-    component.setRevisionDate();
-    expect(component.form.get('date_revision')?.value).toBe('2025-07-15');
+    component.resetForm();
+    expect(component.form.get('name')?.value).toBe(mockProduct.name);
   });
 });
